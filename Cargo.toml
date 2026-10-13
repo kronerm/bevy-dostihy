@@ -1,0 +1,93 @@
+# Both for `[profile.wasm-release]`; they need nightly (`rust-toolchain.toml`).
+cargo-features = ["profile-rustflags", "trim-paths"]
+
+[package]
+name = "dostihy"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+# Only what the game uses, which keeps the web build small. The platform
+# backends (X11, Wayland, WebGL2) are inert where they don't apply.
+bevy = { version = "0.19.1", default-features = false, features = [
+    "async_executor",
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_camera",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_image",
+    "bevy_log",
+    "bevy_mesh",
+    "bevy_render",
+    "bevy_shader",
+    "bevy_sprite",
+    "bevy_sprite_render",
+    "bevy_state",
+    "bevy_text",
+    "bevy_ui",
+    "bevy_ui_render",
+    "bevy_window",
+    "bevy_winit",
+    "keyboard",
+    "mouse",
+    "std",
+    "touch",
+    "wav",
+    "wayland",
+    "web",
+    "webgl2",
+    "x11",
+] }
+fastrand = "2"
+# Unpacking the original game's installer (`src/original.rs`).
+blake3 = "1.8"
+image = { version = "0.25", default-features = false, features = ["bmp"] }
+zip = { version = "8.6", default-features = false, features = ["deflate"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# The UI uses the system's sans-serif font; a browser gets Noto Sans
+# (`build-wasm.sh`). Threads don't exist there either.
+bevy = { version = "0.19.1", default-features = false, features = ["multi_threaded", "system_font_discovery"] }
+# The download page for the original game's installer.
+blocking = "1"
+ureq = "3.4"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Finding the game's assets next to its files (`asset_root`).
+wasm-bindgen = "0.2"
+
+[dev-dependencies]
+# Saving screenshots (`examples/screenshot.rs`); the game itself needs no PNG.
+bevy = { version = "0.19.1", default-features = false, features = ["png"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+debug = false
+
+# `FAST=1 ./build-wasm.sh`: quick web builds while iterating.
+[profile.wasm-fast]
+inherits = "release"
+opt-level = 2
+lto = false
+codegen-units = 16
+debug = false
+incremental = true
+
+# `./build-wasm.sh`: the smallest web build.
+[profile.wasm-release]
+inherits = "release"
+trim-paths = "all"
+rustflags = ["-Zlocation-detail=none"]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+incremental = false
+debug = false
+overflow-checks = false
